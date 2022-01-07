@@ -1,0 +1,56 @@
+---
+title: "Expected pass model"
+author: "Charlie Bishop"
+date: "06/01/2022"
+output: pdf_document
+---
+
+# Load libraries 
+```{r, warning=FALSE, message=FALSE}
+library(StatsBombR)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+```
+
+# Create dataframe
+```{r}
+Comp <- FreeCompetitions() %>%
+  filter(competition_id==37) 
+Matches <- FreeMatches(Comp) 
+StatsBombData <- StatsBombFreeEvents(MatchesDF = Matches, Parallel = T) 
+StatsBombData = allclean(StatsBombData)
+```
+
+# Pre Processing
+First we need to filter out just the passing events
+```{r}
+passes <- filter(StatsBombData, type.name == "Pass")
+```
+
+Next we need to select only the relevant columns 
+```{r}
+passes <- select(passes, under_pressure, play_pattern.name, pass.length, pass.angle, pass.cross, pass.switch, pass.cut_back, pass.deflected, pass.straight, pass.inswinging, pass.through_ball, pass.outswinging, pass.height.id, pass.type.id, pass.body_part.id, pass.recipient.name, pass.outcome.name)
+```
+
+Now we have our particular columns however by looking at it we can see that there are a lot of NA's that we need to turn into FALSE
+```{r}
+passes <- replace_na(passes, list(under_pressure = FALSE,
+                                  pass.cross = FALSE,
+                                  pass.switch = FALSE,
+                                  pass.cut_back = FALSE,
+                                  pass.deflected = FALSE,
+                                  pass.straight = FALSE,
+                                  pass.inswinging = FALSE,
+                                  pass.through_ball = FALSE,
+                                  pass.outswinging = FALSE,
+                                  pass.type.id = 0))
+```
+
+Next we need to create a new column to indicate if the pass was completed or not 
+```{r}
+passes <- mutate(passes, pass.completed = pass.outcome.name)
+passes <- mutate(passes, pass.completed = 
+                  if_else(pass.outcome.name == "Incomplete"), FALSE,
+                  if_else(pass.outcome.name != "Incomplete"), TRUE)
+```
